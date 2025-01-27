@@ -1,0 +1,152 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: ALB Stack with Auto Scaling
+
+Parameters:
+  # パラメータ定義
+  Environment:
+    Type: String
+    Default: prod
+    Description: VPCリソースに関連付けられる環境名を指定
+
+  VpcId:
+    Type: String
+    Description: 作成済みのVPCのID
+
+  PublicSubnet1Id:
+    Type: String
+    Description: 最初のパブリックサブネットのID
+
+  PublicSubnet2Id:
+    Type: String
+    Description: 2つ目のパブリックサブネットのID
+
+  PrivateSubnet1Id:
+    Type: String
+    Description: 最初のプライベートサブネットのID
+
+  PrivateSubnet2Id:
+    Type: String
+    Description: 2つ目のプライベートサブネットのID
+
+  EC2SecurityGroupId:
+    Type: String
+    Description: EC2インスタンスに適用されるセキュリティグループのID
+
+  AlbSecurityGroupId:
+    Type: String
+    Description: ALBに適用されるセキュリティグループのID
+
+Resources:
+  # アプリケーションロードバランサー
+  ALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: ALB
+      Subnets:
+        - !Ref PublicSubnet1Id
+        - !Ref PublicSubnet2Id
+      SecurityGroups:
+        - !Ref AlbSecurityGroupId
+      Scheme: internet-facing
+      Type: application
+      Tags:
+        - Key: Name
+          Value: ALB
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: Practice
+
+  # ターゲットグループ
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: ALB-TargetGroup
+      Port: 80
+      Protocol: HTTP
+      TargetType: instance
+      VpcId: !Ref VpcId
+      HealthCheckProtocol: HTTP
+      HealthCheckPort: traffic-port
+      HealthCheckPath: /
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 5
+      UnhealthyThresholdCount: 2
+      Tags:
+        - Key: Name
+          Value: ALB-TargetGroup
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: Practice
+
+  # リスナー設定
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ALB
+      Protocol: HTTP
+      Port: 80
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+
+  # EC2のローンチテンプレート
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        ImageId: ami-0fb04413c9de69305 # Amazon Linux 2023
+        InstanceType: t2.micro
+        KeyName: test-ec2-key
+        SecurityGroupIds:
+          - !Ref EC2SecurityGroupId
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            # システムの更新とNginxのインストール、SSMエージェントのインストール
+            yum update -y
+            amazon-linux-extras enable nginx1
+            yum install -y nginx
+            systemctl start nginx
+            systemctl enable nginx
+            echo "Welcome to Nginx - ${Environment}" > /usr/share/nginx/html/index.html
+            sudo yum install -y amazon-ssm-agent
+            sudo systemctl enable amazon-ssm-agent
+            sudo systemctl start amazon-ssm-agent
+
+  # オートスケーリンググループ
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier:
+        - !Ref PrivateSubnet1Id
+        - !Ref PrivateSubnet2Id
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchTemplate
+        Version: !GetAtt LaunchTemplate.LatestVersionNumber
+      MinSize: 1
+      MaxSize: 3
+      DesiredCapacity: 2
+      TargetGroupARNs:
+        - !Ref TargetGroup
+      Tags:
+        - Key: Name
+          Value: AutoScalingInstance
+          PropagateAtLaunch: true
+        - Key: Environment
+          Value: !Ref Environment
+          PropagateAtLaunch: true
+        - Key: Project
+          Value: Practice
+          PropagateAtLaunch: true
+
+Outputs:
+  ALBDnsName:
+    Description: ALBのDNS名
+    Value: !GetAtt ALB.DNSName
+
+  AutoScalingGroupName:
+    Description: オートスケーリンググループの名前
+    Value: !GetAtt AutoScalingGroup.AutoScalingGroupName

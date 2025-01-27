@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CloudFront Distribution Stack
+
+Parameters:
+  # 環境に関連するパラメータの定義
+  Environment:
+    Type: String
+    Default: prod
+    Description: リソースが属する環境を指定
+
+  ALBDNSName:
+    Type: String
+    Description: ALBのDNS名を指定
+
+  ACMCertificateArn:
+    Type: String
+    Default: arn:aws:acm:us-east-1:113627911083:certificate/8d30be3a-31cb-4971-a3df-ac65e2253696
+    Description: HTTPS通信のために使用するACM証明書のARN
+
+Resources:
+  # CloudFrontディストリビューションの作成
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true  # ディストリビューションを有効化
+        Origins:
+          - DomainName: !Ref ALBDNSName  # ALBのDNS名をオリジンとして指定
+            Id: ALBOrigin  # オリジンIDの指定
+            CustomOriginConfig:
+              OriginProtocolPolicy: http-only  # オリジンとの通信にはHTTPのみを使用
+        DefaultCacheBehavior:
+          TargetOriginId: ALBOrigin  # キャッシュ動作に関連付けるオリジン
+          ViewerProtocolPolicy: redirect-to-https  # クライアントからのHTTPリクエストをHTTPSにリダイレクト
+          AllowedMethods:
+            - GET
+            - HEAD  # 許可されるHTTPメソッドを指定
+          CachedMethods:
+            - GET
+            - HEAD  # キャッシュ対象のHTTPメソッドを指定
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6  # AWSマネージドキャッシュポリシーを適用
+        ViewerCertificate:
+          AcmCertificateArn: !Ref ACMCertificateArn  # ACM証明書を指定
+          SslSupportMethod: sni-only  # SNI方式を使用
+        HttpVersion: http2  # HTTP/2を有効化
+        PriceClass: PriceClass_200  # アジアを対象
+      Tags:
+      - Key: Name
+        Value: OPEDistribution
+      - Key: Environment
+        Value: !Ref Environment
+      - Key: Project
+        Value: Practice
+

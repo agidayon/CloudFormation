@@ -1,0 +1,107 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Security Groups stack
+
+Parameters: 
+  # 環境情報および関連するVPCのIDを設定するためのパラメータ
+  Environment:
+    Type: String
+    Default: prod
+    Description: リソースに関連付けられる環境名
+  
+  VpcId:
+    Type: String
+    Description: セキュリティグループを作成する対象のVPCのID
+
+Resources: 
+  # ALB用のセキュリティグループ
+  AlbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for ALB to allow HTTP and HTTPS traffic
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        # HTTP (ポート80) の受信トラフィックを許可
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        # HTTPS (ポート443) の受信トラフィックを許可
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        # すべてのアウトバウンドトラフィックを許可
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: AlbSecurityGroup
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: Practice
+
+  # EC2インスタンス用のセキュリティグループ
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for EC2 instances
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        # ALBからのHTTP (ポート80) のトラフィックを許可
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !Ref AlbSecurityGroup
+      SecurityGroupEgress:
+        # すべてのアウトバウンドトラフィックを許可
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: EC2SecurityGroup
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: Practice
+  
+  # RDS用のセキュリティグループ
+  RdsSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for RDS instances
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        # EC2インスタンスからのMySQL (ポート3306) トラフィックを許可
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Ref EC2SecurityGroup
+      SecurityGroupEgress:
+        # VPC内 (CIDR 10.0.0.0/16) へのアウトバウンドトラフィックを許可
+        - IpProtocol: -1
+          CidrIp: 10.0.0.0/16
+      Tags:
+        - Key: Name
+          Value: RdsSecurityGroup
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: Practice
+
+Outputs:
+  # ALBセキュリティグループIDの出力
+  AlbSecurityGroupId:
+    Description: 作成されたALB用セキュリティグループのID
+    Value: !Ref AlbSecurityGroup
+
+  # EC2セキュリティグループIDの出力
+  EC2SecurityGroupId:
+    Description: 作成されたEC2用セキュリティグループのID
+    Value: !Ref EC2SecurityGroup
+
+  # RDSセキュリティグループIDの出力
+  RdsSecurityGroupId:
+    Description: 作成されたRDS用セキュリティグループのID
+    Value: !Ref RdsSecurityGroup

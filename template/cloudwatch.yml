@@ -1,0 +1,97 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Auto Scaling with CloudWatch Alarms and SNS Notifications stack
+
+Parameters:
+  # 環境を指定するパラメータ
+  Environment:
+    Type: String
+    Default: prod
+    Description: リソースが属する環境を指定
+
+  # Auto Scalingグループの名前を指定するパラメータ
+  AutoScalingGroupName:
+    Type: String
+    Description: 対象となるAutoScalingグループの名前
+
+  # SNS通知を送信するメールアドレス
+  NotificationEmail:
+    Type: String
+    Default: hiro-yamamoto@openupitengineer.jp
+    Description: SNS通知を受信するメールアドレス
+
+Resources:
+  # SNSトピックの作成
+  SNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+        - Protocol: email
+          Endpoint: !Ref NotificationEmail  # 通知先メールアドレス
+      DisplayName: AutoScaling Notifications  # トピックの表示名
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: Practice
+
+  # スケールアップ時のCloudWatchアラーム
+  ScaleUpAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: CPU使用率が70%以上の場合にスケールアップをトリガーするアラーム
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average  # CPU使用率の平均値を監視
+      Period: 300  # 監視期間は300秒（5分）
+      EvaluationPeriods: 2  # 条件が2回連続で満たされた場合にアラームを発動
+      Threshold: 70  # 閾値は70%
+      ComparisonOperator: GreaterThanThreshold  # 70%を超えた場合にトリガー
+      AlarmActions:
+        - !Ref ScaleUpPolicy  # スケールアップポリシーを実行
+        - !Ref SNSTopic  # SNSトピックに通知
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value: !Ref AutoScalingGroupName  # 対象のAuto Scalingグループ
+
+  # スケールダウン時のCloudWatchアラーム
+  ScaleDownAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: CPU使用率が20%未満の場合にスケールダウンをトリガーするアラーム
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average  # CPU使用率の平均値を監視
+      Period: 300  # 監視期間は300秒（5分）
+      EvaluationPeriods: 2  # 条件が2回連続で満たされた場合にアラームを発動
+      Threshold: 20  # 閾値は20%
+      ComparisonOperator: LessThanThreshold  # 20%未満の場合にトリガー
+      AlarmActions:
+        - !Ref ScaleDownPolicy  # スケールダウンポリシーを実行
+        - !Ref SNSTopic  # SNSトピックに通知
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value: !Ref AutoScalingGroupName  # 対象のAuto Scalingグループ
+
+  # ステップスケーリングポリシー（スケールアップ用）
+  ScaleUpPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName: !Ref AutoScalingGroupName
+      PolicyType: StepScaling  # ステップスケーリングポリシー
+      AdjustmentType: ChangeInCapacity  # インスタンスの台数を変更
+      StepAdjustments:
+        - MetricIntervalLowerBound: 0  # 条件を満たした場合にスケールアップ
+          ScalingAdjustment: 1  # インスタンスを1台追加
+      Cooldown: 300  # クールダウン期間を300秒に設定
+
+  # ステップスケーリングポリシー（スケールダウン用）
+  ScaleDownPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName: !Ref AutoScalingGroupName
+      PolicyType: StepScaling  # ステップスケーリングポリシー
+      AdjustmentType: ChangeInCapacity  # インスタンスの台数を変更
+      StepAdjustments:
+        - MetricIntervalUpperBound: 0  # 条件を満たした場合にスケールダウン
+          ScalingAdjustment: -1  # インスタンスを1台削除
+      Cooldown: 300  # クールダウン期間を300秒に設定

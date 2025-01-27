@@ -1,0 +1,74 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: rds stack
+
+Parameters: 
+  Environment:
+    Type: String
+    Default: prod
+    Description: リソースに関連付ける環境名を指定するパラメータ
+
+  PrivateSubnet1Id:
+    Type: String
+    Description: RDSインスタンスが配置される最初のプライベートサブネットのID
+
+  PrivateSubnet2Id:
+    Type: String
+    Description: RDSインスタンスが配置される2つ目のプライベートサブネットのID
+
+  RdsSecurityGroupId:
+    Type: String
+    Description: RDSインスタンスに適用されるセキュリティグループのID
+
+  RdsMasterUserPassword:
+    Type: String
+    NoEcho: true  # パスワードはCloudFormationの出力に表示されない
+    MinLength: 8
+    MaxLength: 41
+    Description: RDSマスターユーザーのパスワード
+    ConstraintDescription: 8文字以上41文字以下
+    Default: OPEPassword123!  # 初期値として設定されるパスワード
+
+Resources:
+  # RDSが利用するサブネットグループを定義
+  RDSSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupName: RDSSubnetGroup  
+      DBSubnetGroupDescription: RDSSubnetGroup
+      SubnetIds:
+        - !Ref PrivateSubnet1Id
+        - !Ref PrivateSubnet2Id
+      Tags:
+        - Key: Name
+          Value: RDSSubnetGroup
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: Practice
+
+  # MySQLエンジンを利用したRDSインスタンス
+  RDSInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AllocatedStorage: 20  # RDSインスタンスに割り当てるストレージサイズ（GB）
+      DBInstanceClass: db.t3.micro
+      AllowMajorVersionUpgrade: true
+      AutoMinorVersionUpgrade: true  
+      DBName: OPEDatabase
+      Engine: mysql
+      MasterUsername: admin
+      MasterUserPassword: !Ref RdsMasterUserPassword  # マスターユーザーパスワード（パラメータから取得）
+      VPCSecurityGroups:
+        - !Ref RdsSecurityGroupId
+      DBSubnetGroupName: !Ref RDSSubnetGroup
+      MultiAZ: true
+      PubliclyAccessible: false  # インターネット経由でのアクセスを無効
+      StorageType: gp2  # 汎用SSDストレージタイプ
+      BackupRetentionPeriod: 7  # バックアップ保持期間を7日間
+      Tags:
+        - Key: Name
+          Value: OPEDatabase
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: Practice

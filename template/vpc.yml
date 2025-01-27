@@ -1,0 +1,289 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description:  vpc stack
+
+Parameters: 
+  # 各リソースの環境や設定に必要なパラメータを定義
+  Environment:
+    Type: String
+    Default: prod
+    Description: VPCリソースに関連付けられる環境名を指定
+  
+  VpcCidr:
+    Type: String
+    Default: 10.0.0.0/16
+    Description: VPCのCIDRブロックを指定
+  
+  AvailabilityZone1:
+    Type: String
+    Default: ap-northeast-1a
+    Description: 1つ目のサブネットを作成するアベイラビリティゾーンを指定
+
+  AvailabilityZone2:
+    Type: String
+    Default: ap-northeast-1c
+    Description: 2つ目のサブネットを作成するアベイラビリティゾーンを指定
+
+  PublicSubnet1Cidr:
+    Type: String
+    Default: 10.0.1.0/24
+    Description: PublicSubnet1のCIDRブロックを指定
+
+  PublicSubnet2Cidr:
+    Type: String
+    Default: 10.0.2.0/24
+    Description: PublicSubnet2のCIDRブロックを指定
+  
+  PrivateSubnet1Cidr:
+    Type: String
+    Default: 10.0.3.0/24
+    Description: PrivateSubnet1のCIDRブロックを指定
+
+  PrivateSubnet2Cidr:
+    Type: String
+    Default: 10.0.4.0/24
+    Description: PrivateSubnet2のCIDRブロックを指定
+ 
+Resources:
+  # VPCを作成
+  OPEVPC: 
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: OPEVPC
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: Practice
+
+  # PublicSubnet1を作成
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Ref AvailabilityZone1
+      VpcId: !Ref OPEVPC
+      CidrBlock: !Ref PublicSubnet1Cidr
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: PublicSubnet1
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: Practice
+
+  # PublicSubnet2を作成
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Ref AvailabilityZone2
+      VpcId: !Ref OPEVPC
+      CidrBlock: !Ref PublicSubnet2Cidr
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: PublicSubnet2
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: Practice
+
+  # PrivateSubnet1を作成
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Ref AvailabilityZone1
+      VpcId: !Ref OPEVPC
+      CidrBlock: !Ref PrivateSubnet1Cidr
+      Tags:
+        - Key: Name
+          Value: PrivateSubnet1
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: Practice
+
+  # PrivateSubnet2を作成
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Ref AvailabilityZone2
+      VpcId: !Ref OPEVPC
+      CidrBlock: !Ref PrivateSubnet2Cidr
+      Tags:
+        - Key: Name
+          Value: PrivateSubnet2
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: Practice
+
+  # インターネットゲートウェイを作成し、VPCにアタッチ
+  OPEIGW:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: OPE-IGW
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: Practice
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref OPEVPC
+      InternetGatewayId: !Ref OPEIGW
+
+  # Natゲートウェイを作成
+  NatEIP1:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  NatGateway1:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatEIP1.AllocationId
+      SubnetId: !Ref PublicSubnet1
+      Tags:
+        - Key: Name
+          Value: OPE-NATGateway1
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: Practice
+
+  NatEIP2:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  NatGateway2:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatEIP2.AllocationId
+      SubnetId: !Ref PublicSubnet2
+      Tags:
+        - Key: Name
+          Value: OPE-NATGateway2
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: Practice
+
+  # Publicサブネット用のルートテーブルを作成
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref OPEVPC
+      Tags:
+        - Key: Name
+          Value: OPE-RouteTable
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: Practice
+  
+  # Privateサブネット用のルートテーブルを作成
+  PrivateRouteTable1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref OPEVPC
+      Tags:
+        - Key: Name
+          Value: PrivateRouteTable1
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: Practice
+
+  PrivateRouteTable2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref OPEVPC
+      Tags:
+        - Key: Name
+          Value: PrivateRouteTable2
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: Practice
+
+
+  # ルートテーブルにデフォルトルートを設定
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref OPEIGW
+
+  # プライベートルートテーブルをそれぞれ設定
+  PrivateRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable1
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway1
+
+  PrivateRoute2:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway2
+
+  # 各Publicサブネットをルートテーブルに関連付け
+  PublicSubnet1association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnet2association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+  
+  PrivateSubnet1Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet1
+      RouteTableId: !Ref PrivateRouteTable1
+
+  PrivateSubnet2Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet2
+      RouteTableId: !Ref PrivateRouteTable2
+
+Outputs:
+  # VPCIDを出力
+  VpcId:
+    Description: 作成したVPCのID
+    Value: !Ref OPEVPC
+
+  # Publicサブネット1のIDを出力
+  PublicSubnet1Id:
+    Description: 作成した最初のパブリックサブネットのID
+    Value: !Ref PublicSubnet1
+
+  # Publicサブネット2のIDを出力
+  PublicSubnet2Id:
+    Description: 作成した2つ目のパブリックサブネットのID
+    Value: !Ref PublicSubnet2
+
+  # Privateサブネット1のIDを出力
+  PrivateSubnet1Id:
+    Description: 作成した最初のプライベートサブネットのID
+    Value: !Ref PrivateSubnet1
+
+  # Privateサブネット2のIDを出力
+  PrivateSubnet2Id:
+    Description: 作成した2つ目のプライベートサブネットのID
+    Value: !Ref PrivateSubnet2
