@@ -14,7 +14,7 @@ Parameters:
 
   ACMCertificateArn:
     Type: String
-    Default: arn:aws:acm:us-east-1:113627911083:certificate/8d30be3a-31cb-4971-a3df-ac65e2253696
+    Default: arn:aws:acm:us-east-1:XXXXXXXXXXXX:certificate/8d30be3a-31cb-4971-a3df-ac65e2253696
     Description: HTTPS通信のために使用するACM証明書のARN
 
 Resources:
