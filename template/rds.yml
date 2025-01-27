@@ -51,9 +51,7 @@ Resources:
     Type: AWS::RDS::DBInstance
     Properties:
       AllocatedStorage: 20  # RDSインスタンスに割り当てるストレージサイズ（GB）
-      DBInstanceClass: db.t3.micro
-      AllowMajorVersionUpgrade: true
-      AutoMinorVersionUpgrade: true  
+      DBInstanceClass: db.t3.micro 
       DBName: TESTDatabase
       Engine: mysql
       MasterUsername: admin
