@@ -16,7 +16,7 @@ Parameters:
   # SNS通知を送信するメールアドレス
   NotificationEmail:
     Type: String
-    Default: hiro-yamamoto@openupitengineer.jp
+    Default: example@email.com
     Description: SNS通知を受信するメールアドレス
 
 Resources:
@@ -51,7 +51,7 @@ Resources:
         - !Ref SNSTopic  # SNSトピックに通知
       Dimensions:
         - Name: AutoScalingGroupName
-          Value: !Ref AutoScalingGroupName  # 対象のAuto Scalingグループ
+          Value: !Ref AutoScalingGroupName  # 対象のAutoScalingグループ
 
   # スケールダウン時のCloudWatchアラーム
   ScaleDownAlarm:
