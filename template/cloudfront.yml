@@ -14,7 +14,7 @@ Parameters:
 
   ACMCertificateArn:
     Type: String
-    Default: arn:aws:acm:us-east-1:XXXXXXXXXXXX:certificate/8d30be3a-31cb-4971-a3df-ac65e2253696
+    Default: arn:aws:acm:us-east-1:XXXXXXXXXXXX:certificate/XXXXX-XXXXXX
     Description: HTTPS通信のために使用するACM証明書のARN
 
 Resources:
@@ -46,7 +46,7 @@ Resources:
         PriceClass: PriceClass_200  # アジアを対象
       Tags:
       - Key: Name
-        Value: OPEDistribution
+        Value: Distribution
       - Key: Environment
         Value: !Ref Environment
       - Key: Project
