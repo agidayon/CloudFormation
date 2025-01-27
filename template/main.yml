@@ -3,17 +3,17 @@ Description: main stack
 
 Resources: 
   # VPCStack
-  # VPC（仮想プライベートクラウド）を作成。
-  # 必要なパブリックサブネット、プライベートサブネット、ルートテーブル、インターネットゲートウェイを構築。
+  # VPC（仮想プライベートクラウド）を作成
+  # 必要なパブリックサブネット、プライベートサブネット、ルートテーブル、インターネットゲートウェイを構築
   VPCStack:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: https://XXXXXXXXXX.s3.ap-northeast-1.amazonaws.com/template/vpc.yml
 
   # SecurityGroupStack
-  # 必要なセキュリティグループを作成。
-  # VPCIDをVPCStackから取得して設定。
-  # ALB、EC2、RDS用のセキュリティグループを構成し、ネットワークレベルでのアクセス制御を実現。
+  # 必要なセキュリティグループを作成
+  # VPCIDをVPCStackから取得して設定
+  # ALB、EC2、RDS用のセキュリティグループを構成し、ネットワークレベルでのアクセス制御を実現
   SecurityGroupStack:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -22,8 +22,8 @@ Resources:
         VpcId: !GetAtt VPCStack.Outputs.VpcId
 
   # RDSInstanceStack
-  # プライベートサブネット内にRDSインスタンスをデプロイ。
-  # プライベートサブネットIDとRDS用セキュリティグループIDを取得。
+  # プライベートサブネット内にRDSインスタンスをデプロイ
+  # プライベートサブネットIDとRDS用セキュリティグループIDを取得
   RDSInstanceStack:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -34,9 +34,9 @@ Resources:
         RdsSecurityGroupId: !GetAtt SecurityGroupStack.Outputs.RdsSecurityGroupId
 
   # ALBInstanceStack
-  # アプリケーションロードバランサー（ALB）とEC2オートスケーリンググループを構築。
-  # ALBはトラフィックを複数のEC2インスタンスに分散。
-  # オートスケーリンググループはトラフィック量に応じてEC2インスタンス数を動的に調整。
+  # アプリケーションロードバランサー（ALB）とEC2オートスケーリンググループを構築
+  # ALBはトラフィックを複数のEC2インスタンスに分散
+  # オートスケーリンググループはトラフィック量に応じてEC2インスタンス数を動的に調整
   ALBInstanceStack:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -51,8 +51,8 @@ Resources:
         EC2SecurityGroupId: !GetAtt SecurityGroupStack.Outputs.EC2SecurityGroupId
 
   # CloudWatchStack
-  # オートスケーリンググループ用のCloudWatchアラームを設定。
-  # CPU使用率に基づいてEC2インスタンスのスケールアップとスケールダウンをトリガーするアラームを構築。
+  # オートスケーリンググループ用のCloudWatchアラームを設定
+  # CPU使用率に基づいてEC2インスタンスのスケールアップとスケールダウンをトリガーするアラームを構築
   CloudWatchStack:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -61,8 +61,8 @@ Resources:
         AutoScalingGroupName: !GetAtt ALBInstanceStack.Outputs.AutoScalingGroupName
 
   # CloudFrontStack
-  # CloudFrontディストリビューションを構築。
-  # ALBと統合し、コンテンツ配信のパフォーマンスを向上。
+  # CloudFrontディストリビューションを構築
+  # ALBと統合し、コンテンツ配信のパフォーマンスを向上
   CloudFrontStack:
     Type: AWS::CloudFormation::Stack
     Properties:
