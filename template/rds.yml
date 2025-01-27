@@ -26,7 +26,7 @@ Parameters:
     MaxLength: 41
     Description: RDSマスターユーザーのパスワード
     ConstraintDescription: 8文字以上41文字以下
-    Default: OPEPassword123!  # 初期値として設定されるパスワード
+    Default: TESTPassword123!  # 初期値として設定されるパスワード
 
 Resources:
   # RDSが利用するサブネットグループを定義
@@ -54,7 +54,7 @@ Resources:
       DBInstanceClass: db.t3.micro
       AllowMajorVersionUpgrade: true
       AutoMinorVersionUpgrade: true  
-      DBName: OPEDatabase
+      DBName: TESTDatabase
       Engine: mysql
       MasterUsername: admin
       MasterUserPassword: !Ref RdsMasterUserPassword  # マスターユーザーパスワード（パラメータから取得）
@@ -67,7 +67,7 @@ Resources:
       BackupRetentionPeriod: 7  # バックアップ保持期間を7日間
       Tags:
         - Key: Name
-          Value: OPEDatabase
+          Value: Database
         - Key: Environment
           Value: !Ref Environment
         - Key: Project
