@@ -45,7 +45,7 @@ Parameters:
  
 Resources:
   # VPCを作成
-  OPEVPC: 
+  VPC: 
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: !Ref VpcCidr
@@ -53,7 +53,7 @@ Resources:
       EnableDnsHostnames: true
       Tags:
         - Key: Name
-          Value: OPEVPC
+          Value: VPC
         - Key: Environment
           Value: !Ref Environment
         - Key: Project
@@ -64,7 +64,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       AvailabilityZone: !Ref AvailabilityZone1
-      VpcId: !Ref OPEVPC
+      VpcId: !Ref VPC
       CidrBlock: !Ref PublicSubnet1Cidr
       MapPublicIpOnLaunch: true
       Tags:
@@ -80,7 +80,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       AvailabilityZone: !Ref AvailabilityZone2
-      VpcId: !Ref OPEVPC
+      VpcId: !Ref VPC
       CidrBlock: !Ref PublicSubnet2Cidr
       MapPublicIpOnLaunch: true
       Tags:
@@ -96,7 +96,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       AvailabilityZone: !Ref AvailabilityZone1
-      VpcId: !Ref OPEVPC
+      VpcId: !Ref VPC
       CidrBlock: !Ref PrivateSubnet1Cidr
       Tags:
         - Key: Name
@@ -111,7 +111,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       AvailabilityZone: !Ref AvailabilityZone2
-      VpcId: !Ref OPEVPC
+      VpcId: !Ref VPC
       CidrBlock: !Ref PrivateSubnet2Cidr
       Tags:
         - Key: Name
@@ -122,12 +122,12 @@ Resources:
           Value: Practice
 
   # インターネットゲートウェイを作成し、VPCにアタッチ
-  OPEIGW:
+  IGW:
     Type: AWS::EC2::InternetGateway
     Properties:
       Tags:
         - Key: Name
-          Value: OPE-IGW
+          Value: IGW
         - Key: Environment
           Value: !Ref Environment
         - Key: Project
@@ -135,8 +135,8 @@ Resources:
   AttachGateway:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
-      VpcId: !Ref OPEVPC
-      InternetGatewayId: !Ref OPEIGW
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref IGW
 
   # Natゲートウェイを作成
   NatEIP1:
@@ -151,7 +151,7 @@ Resources:
       SubnetId: !Ref PublicSubnet1
       Tags:
         - Key: Name
-          Value: OPE-NATGateway1
+          Value: NATGateway1
         - Key: Environment
           Value: !Ref Environment
         - Key: Project
@@ -169,7 +169,7 @@ Resources:
       SubnetId: !Ref PublicSubnet2
       Tags:
         - Key: Name
-          Value: OPE-NATGateway2
+          Value: NATGateway2
         - Key: Environment
           Value: !Ref Environment
         - Key: Project
@@ -179,10 +179,10 @@ Resources:
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
-      VpcId: !Ref OPEVPC
+      VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: OPE-RouteTable
+          Value: RouteTable
         - Key: Environment
           Value: !Ref Environment
         - Key: Project
@@ -192,7 +192,7 @@ Resources:
   PrivateRouteTable1:
     Type: AWS::EC2::RouteTable
     Properties:
-      VpcId: !Ref OPEVPC
+      VpcId: !Ref VPC
       Tags:
         - Key: Name
           Value: PrivateRouteTable1
@@ -220,7 +220,7 @@ Resources:
     Properties:
       RouteTableId: !Ref PublicRouteTable
       DestinationCidrBlock: 0.0.0.0/0
-      GatewayId: !Ref OPEIGW
+      GatewayId: !Ref IGW
 
   # プライベートルートテーブルをそれぞれ設定
   PrivateRoute1:
@@ -266,7 +266,7 @@ Outputs:
   # VPCIDを出力
   VpcId:
     Description: 作成したVPCのID
-    Value: !Ref OPEVPC
+    Value: !Ref VPC
 
   # Publicサブネット1のIDを出力
   PublicSubnet1Id:
